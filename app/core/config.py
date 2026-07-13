@@ -1,5 +1,7 @@
-from dotenv import load_dotenv 
-load_dotenv() 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 import os
 
 
@@ -7,11 +9,9 @@ class Settings:
     APP_NAME: str = "IsThisAI"
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
 
-    # Auth stub - shared secret header, protects your LLM key from random traffic
     AUTH_TOKEN: str = os.getenv("AUTH_TOKEN", "change-me-locally")
 
-    # LLM provider switch - flip one env var, no code changes needed anywhere else
-    LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "groq")  # "groq" or "anthropic"
+    LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "groq")
 
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
     GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
