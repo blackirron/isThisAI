@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>IsThisAI — Text Examiner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #FBF9F4;
+    --panel: #FFFFFF;
+    --ink: #1C1C1C;
+    --muted: #8A8578;
+    --border: #E7E2D6;
+    --stamp-ai: #B3261E;
+    --stamp-human: #2F6B3E;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--paper);
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(0,0,0,0.035) 1px, transparent 0);
+    background-size: 22px 22px;
+    color: var(--ink);
+    font-family: 'Lora', Georgia, serif;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 48px 20px;
+  }
+
+  .case-file {
+    width: 100%;
+    max-width: 640px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 12px 28px rgba(28,28,28,0.06);
+    padding: 40px 44px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .case-file::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 6px;
+    background: repeating-linear-gradient(90deg, var(--ink) 0 14px, transparent 14px 22px);
+    opacity: 0.06;
+  }
+
+  .kicker {
+    font-family: 'Oswald', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  h1 {
+    font-family: 'Oswald', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0 0 6px;
+  }
+
+  .subhead {
+    font-size: 14.5px;
+    color: var(--muted);
+    font-style: italic;
+    margin: 0 0 28px;
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 200px;
+    resize: vertical;
+    font-family: 'Lora', Georgia, serif;
+    font-size: 15.5px;
+    line-height: 1.65;
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 18px 20px;
+    outline: none;
+    transition: border-color 0.2s ease;
+  }
+  textarea:focus { border-color: var(--ink); }
+  textarea::placeholder { color: #B7B0A0; font-style: italic; }
+
+  .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+  }
+
+  .char-count {
+    font-family: 'Oswald', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+  }
+  .char-count.warn { color: var(--stamp-ai); }
+
+  button.examine {
+    font-family: 'Oswald', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    padding: 13px 26px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.2s ease;
+  }
+  button.examine:hover:not(:disabled) { background: #333; transform: translateY(-1px); }
+  button.examine:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .verdict-zone {
+    margin-top: 30px;
+    min-height: 4px;
+  }
+
+  .error-box {
+    border: 1px solid var(--stamp-ai);
+    color: var(--stamp-ai);
+    background: rgba(179, 38, 30, 0.06);
+    padding: 14px 18px;
+    border-radius: 3px;
+    font-size: 14px;
+  }
+
+  .result {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    padding-top: 26px;
+    border-top: 1px dashed var(--border);
+  }
+
+  .stamp {
+    flex: none;
+    width: 108px;
+    height: 108px;
+    border-radius: 50%;
+    border: 3.5px solid var(--stamp-color);
+    color: var(--stamp-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    text-align: center;
+    transform: rotate(-9deg) scale(0.6);
+    opacity: 0;
+    animation: stampIn 0.45s cubic-bezier(.2,1.4,.4,1) forwards;
+    animation-delay: 0.05s;
+    position: relative;
+  }
+  .stamp::after {
+    content: "";
+    position: absolute;
+    inset: 6px;
+    border: 1px solid var(--stamp-color);
+    border-radius: 50%;
+    opacity: 0.5;
+  }
+  .stamp .verdict-word {
+    font-size: 15px;
+    letter-spacing: 0.03em;
+    line-height: 1.15;
+  }
+  .stamp .confidence {
+    font-family: 'Lora', serif;
+    font-weight: 400;
+    font-style: italic;
+    font-size: 11px;
+    margin-top: 4px;
+    opacity: 0.85;
+  }
+
+  @keyframes stampIn {
+    0% { transform: rotate(-9deg) scale(0.6); opacity: 0; }
+    60% { transform: rotate(-7deg) scale(1.08); opacity: 1; }
+    100% { transform: rotate(-7deg) scale(1); opacity: 1; }
+  }
+
+  .verdict-copy .headline {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--stamp-color);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 6px;
+  }
+  .verdict-copy .reasoning {
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: #4A463D;
+  }
+
+  .footer-note {
+    margin-top: 26px;
+    font-size: 12px;
+    color: var(--muted);
+    font-style: italic;
+    text-align: center;
+  }
+
+  @media (max-width: 480px) {
+    .case-file { padding: 28px 24px; }
+    .result { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<div class="case-file">
+  <div class="kicker">Case File · Text Forensics</div>
+  <h1>IsThisAI</h1>
+  <p class="subhead">Paste a passage. We'll examine the evidence and render a verdict.</p>
+
+  <textarea id="inputText" placeholder="Paste the paragraph you want examined here…"></textarea>
+
+  <div class="row">
+    <span class="char-count" id="charCount">0 / 6000</span>
+    <button class="examine" id="examineBtn">Examine</button>
+  </div>
+
+  <div class="verdict-zone" id="verdictZone"></div>
+
+  <div class="footer-note">Judgment is probabilistic, not proof — treat it as a second opinion.</div>
+</div>
+
+<script>
+  const inputText = document.getElementById('inputText');
+  const charCount = document.getElementById('charCount');
+  const examineBtn = document.getElementById('examineBtn');
+  const verdictZone = document.getElementById('verdictZone');
+
+  const MAX_CHARS = 6000;
+  const MIN_CHARS = 40;
+
+  inputText.addEventListener('input', () => {
+    const len = inputText.value.length;
+    charCount.textContent = `${len} / ${MAX_CHARS}`;
+    charCount.classList.toggle('warn', len > MAX_CHARS);
+  });
+
+  function renderError(message) {
+    verdictZone.innerHTML = `<div class="error-box">${message}</div>`;
+  }
+
+  function renderResult(data) {
+    const isAI = data.verdict === 'ai';
+    const color = isAI ? 'var(--stamp-ai)' : 'var(--stamp-human)';
+    const label = isAI ? 'AI-Generated' : 'Human-Written';
+    const stampWord = isAI ? 'AI' : 'HUMAN';
+
+    verdictZone.innerHTML = `
+      <div class="result">
+        <div class="stamp" style="--stamp-color:${color}">
+          <span class="verdict-word">${stampWord}</span>
+          <span class="confidence">${data.confidence}% conf.</span>
+        </div>
+        <div class="verdict-copy">
+          <div class="headline" style="color:${color}">${label}</div>
+          <div class="reasoning">${data.reasoning}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  async function examine() {
+    const text = inputText.value.trim();
+
+    if (text.length < MIN_CHARS) {
+      renderError(`Paste at least ${MIN_CHARS} characters — too little text to judge reliably.`);
+      return;
+    }
+
+    examineBtn.disabled = true;
+    examineBtn.textContent = 'Examining…';
+    verdictZone.innerHTML = '';
+
+    try {
+      const res = await fetch('/api/detect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `Request failed (${res.status})`);
+      }
+
+      const data = await res.json();
+      renderResult(data);
+    } catch (err) {
+      renderError(err.message || 'Something went wrong during examination.');
+    } finally {
+      examineBtn.disabled = false;
+      examineBtn.textContent = 'Examine';
+    }
+  }
+
+  examineBtn.addEventListener('click', examine);
+</script>
+
+</body>
+</html>
