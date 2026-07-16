@@ -164,3 +164,5 @@ any README you show a recruiter, since overclaiming accuracy here would
 - Video and code ai detection
 - Batch media processing
 - AI extent detection(%) in large files or external links
+
+<img width="1536" height="1024" alt="file_00000000e23c720b803ed5c7c1dbce12" src="https://github.com/user-attachments/assets/d9f9eb9f-f65e-49be-a5a2-ecbcdcc87304" />
