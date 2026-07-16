@@ -158,3 +158,9 @@ any README you show a recruiter, since overclaiming accuracy here would
 <img width="400" height="auto" alt="Screenshot from 2026-07-16 10-06-37" src="https://github.com/user-attachments/assets/bda0a946-6b7b-45a3-85e4-549b685b90a4" />
 
 
+# Future Scope
+
+- Detection history
+- Video and code ai detection
+- Batch media processing
+- AI extent detection(%) in large files or external links
