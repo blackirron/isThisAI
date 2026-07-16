@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>IsThisAI — Text Examiner</title>
+<title>IsThisAI — Text & Image Examiner</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -77,8 +77,37 @@
     font-size: 14.5px;
     color: var(--muted);
     font-style: italic;
-    margin: 0 0 28px;
+    margin: 0 0 22px;
   }
+
+  /* Mode tabs */
+  .mode-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .mode-tab {
+    font-family: 'Oswald', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: none;
+    border: none;
+    color: var(--muted);
+    padding: 10px 4px 12px;
+    margin-right: 22px;
+    cursor: pointer;
+    position: relative;
+    top: 1px;
+  }
+  .mode-tab.active {
+    color: var(--ink);
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .panel[hidden] { display: none; }
 
   textarea {
     width: 100%;
@@ -130,6 +159,54 @@
   button.examine:hover:not(:disabled) { background: #333; transform: translateY(-1px); }
   button.examine:disabled { opacity: 0.5; cursor: not-allowed; }
 
+  /* Image dropzone */
+  .dropzone {
+    border: 1.5px dashed var(--border);
+    border-radius: 3px;
+    background: var(--paper);
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .dropzone.dragover { border-color: var(--ink); background: #F3F0E8; }
+  .dropzone-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    margin: 0 0 4px;
+  }
+  .dropzone-sub { font-size: 12px; color: var(--muted); font-style: italic; margin: 4px 0; }
+  .dropzone-hint { font-size: 11.5px; color: var(--muted); margin-top: 10px; }
+
+  .preview-wrap { text-align: center; }
+  .preview-wrap img {
+    max-width: 100%;
+    max-height: 280px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+  }
+  .preview-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: var(--muted);
+    margin: 10px 2px;
+  }
+  .link-btn {
+    background: none;
+    border: none;
+    color: var(--stamp-ai);
+    font-family: 'Oswald', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 0;
+  }
+
   .verdict-zone {
     margin-top: 30px;
     min-height: 4px;
@@ -142,6 +219,16 @@
     padding: 14px 18px;
     border-radius: 3px;
     font-size: 14px;
+  }
+
+  .notice-box {
+    border: 1px solid #C9A227;
+    color: #7A5E00;
+    background: rgba(201, 162, 39, 0.08);
+    padding: 12px 16px;
+    border-radius: 3px;
+    font-size: 13px;
+    margin-top: 14px;
   }
 
   .result {
@@ -215,6 +302,26 @@
     color: #4A463D;
   }
 
+  /* Forensic evidence (image mode only) */
+  .evidence {
+    margin-top: 18px;
+    font-size: 13px;
+  }
+  .evidence summary {
+    font-family: 'Oswald', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .evidence ul { margin: 12px 0 0; padding-left: 18px; }
+  .evidence li { margin-bottom: 10px; line-height: 1.55; color: #4A463D; }
+  .sig-strong { color: var(--stamp-ai); font-weight: 600; }
+  .sig-moderate { color: #A9762C; font-weight: 600; }
+  .sig-weak { color: var(--muted); font-weight: 600; }
+
   .footer-note {
     margin-top: 26px;
     font-size: 12px;
@@ -232,27 +339,98 @@
 <body>
 
 <div class="case-file">
-  <div class="kicker">Case File · Text Forensics</div>
+  <div class="kicker">Case File · Digital Forensics</div>
   <h1>IsThisAI</h1>
-  <p class="subhead">Paste a passage. We'll examine the evidence and render a verdict.</p>
+  <p class="subhead">Paste text or upload an image. We'll examine the evidence and render a verdict.</p>
 
-  <textarea id="inputText" placeholder="Paste the paragraph you want examined here…"></textarea>
-
-  <div class="row">
-    <span class="char-count" id="charCount">0 / 6000</span>
-    <button class="examine" id="examineBtn">Examine</button>
+  <div class="mode-tabs">
+    <button class="mode-tab active" data-mode="text" type="button">Text</button>
+    <button class="mode-tab" data-mode="image" type="button">Image</button>
   </div>
 
-  <div class="verdict-zone" id="verdictZone"></div>
+  <!-- TEXT MODE -->
+  <div class="panel" data-panel="text">
+    <textarea id="inputText" placeholder="Paste the paragraph you want examined here…"></textarea>
+
+    <div class="row">
+      <span class="char-count" id="charCount">0 / 6000</span>
+      <button class="examine" id="examineTextBtn">Examine</button>
+    </div>
+
+    <div class="verdict-zone" id="textVerdictZone"></div>
+  </div>
+
+  <!-- IMAGE MODE -->
+  <div class="panel" data-panel="image" hidden>
+    <input type="file" id="imageFileInput" accept="image/png,image/jpeg,image/webp" hidden />
+
+    <div class="dropzone" id="imageDropzone">
+      <p class="dropzone-title">Drop an image here, or click to choose a file</p>
+      <p class="dropzone-sub">PNG · JPG · WEBP</p>
+      <p class="dropzone-hint">Max 8MB</p>
+    </div>
+
+    <div class="preview-wrap" id="imagePreviewWrap" hidden>
+      <img id="imagePreview" alt="Selected image preview" />
+      <div class="preview-meta">
+        <span id="imageFilename"></span>
+        <button class="link-btn" id="imageClearBtn" type="button">Remove</button>
+      </div>
+      <div class="row" style="justify-content:flex-end;">
+        <button class="examine" id="examineImageBtn">Examine</button>
+      </div>
+    </div>
+
+    <div class="verdict-zone" id="imageVerdictZone"></div>
+  </div>
 
   <div class="footer-note">Judgment is probabilistic, not proof — treat it as a second opinion.</div>
 </div>
 
 <script>
+  /* ---------- Mode tab switching ---------- */
+  const modeTabs = document.querySelectorAll('.mode-tab');
+  const panels = document.querySelectorAll('.panel');
+
+  modeTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      modeTabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const mode = tab.dataset.mode;
+      panels.forEach(p => { p.hidden = p.dataset.panel !== mode; });
+    });
+  });
+
+  /* ---------- Shared stamp renderer ---------- */
+  function renderStamp(zoneEl, { verdict, confidence, reasoning }) {
+    const isAI = verdict === 'ai';
+    const color = isAI ? 'var(--stamp-ai)' : 'var(--stamp-human)';
+    const label = isAI ? 'AI-Generated' : 'Human-Made';
+    const stampWord = isAI ? 'AI' : 'HUMAN';
+
+    zoneEl.innerHTML = `
+      <div class="result">
+        <div class="stamp" style="--stamp-color:${color}">
+          <span class="verdict-word">${stampWord}</span>
+          <span class="confidence">${confidence}% conf.</span>
+        </div>
+        <div class="verdict-copy">
+          <div class="headline" style="color:${color}">${label}</div>
+          <div class="reasoning">${reasoning}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderError(zoneEl, message) {
+    zoneEl.innerHTML = `<div class="error-box">${message}</div>`;
+  }
+
+  /* ---------- TEXT MODE ---------- */
   const inputText = document.getElementById('inputText');
   const charCount = document.getElementById('charCount');
-  const examineBtn = document.getElementById('examineBtn');
-  const verdictZone = document.getElementById('verdictZone');
+  const examineTextBtn = document.getElementById('examineTextBtn');
+  const textVerdictZone = document.getElementById('textVerdictZone');
 
   const MAX_CHARS = 6000;
   const MIN_CHARS = 40;
@@ -263,41 +441,17 @@
     charCount.classList.toggle('warn', len > MAX_CHARS);
   });
 
-  function renderError(message) {
-    verdictZone.innerHTML = `<div class="error-box">${message}</div>`;
-  }
-
-  function renderResult(data) {
-    const isAI = data.verdict === 'ai';
-    const color = isAI ? 'var(--stamp-ai)' : 'var(--stamp-human)';
-    const label = isAI ? 'AI-Generated' : 'Human-Written';
-    const stampWord = isAI ? 'AI' : 'HUMAN';
-
-    verdictZone.innerHTML = `
-      <div class="result">
-        <div class="stamp" style="--stamp-color:${color}">
-          <span class="verdict-word">${stampWord}</span>
-          <span class="confidence">${data.confidence}% conf.</span>
-        </div>
-        <div class="verdict-copy">
-          <div class="headline" style="color:${color}">${label}</div>
-          <div class="reasoning">${data.reasoning}</div>
-        </div>
-      </div>
-    `;
-  }
-
-  async function examine() {
+  async function examineText() {
     const text = inputText.value.trim();
 
     if (text.length < MIN_CHARS) {
-      renderError(`Paste at least ${MIN_CHARS} characters — too little text to judge reliably.`);
+      renderError(textVerdictZone, `Paste at least ${MIN_CHARS} characters — too little text to judge reliably.`);
       return;
     }
 
-    examineBtn.disabled = true;
-    examineBtn.textContent = 'Examining…';
-    verdictZone.innerHTML = '';
+    examineTextBtn.disabled = true;
+    examineTextBtn.textContent = 'Examining…';
+    textVerdictZone.innerHTML = '';
 
     try {
       const res = await fetch('/api/detect', {
@@ -312,16 +466,128 @@
       }
 
       const data = await res.json();
-      renderResult(data);
+      renderStamp(textVerdictZone, data);
     } catch (err) {
-      renderError(err.message || 'Something went wrong during examination.');
+      renderError(textVerdictZone, err.message || 'Something went wrong during examination.');
     } finally {
-      examineBtn.disabled = false;
-      examineBtn.textContent = 'Examine';
+      examineTextBtn.disabled = false;
+      examineTextBtn.textContent = 'Examine';
     }
   }
 
-  examineBtn.addEventListener('click', examine);
+  examineTextBtn.addEventListener('click', examineText);
+
+  /* ---------- IMAGE MODE ---------- */
+  const dropzone = document.getElementById('imageDropzone');
+  const imageFileInput = document.getElementById('imageFileInput');
+  const previewWrap = document.getElementById('imagePreviewWrap');
+  const previewImg = document.getElementById('imagePreview');
+  const filenameEl = document.getElementById('imageFilename');
+  const clearBtn = document.getElementById('imageClearBtn');
+  const examineImageBtn = document.getElementById('examineImageBtn');
+  const imageVerdictZone = document.getElementById('imageVerdictZone');
+
+  const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+  const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+  let selectedFile = null;
+
+  dropzone.addEventListener('click', () => imageFileInput.click());
+  ['dragenter', 'dragover'].forEach(evt =>
+    dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.add('dragover'); })
+  );
+  ['dragleave', 'drop'].forEach(evt =>
+    dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.remove('dragover'); })
+  );
+  dropzone.addEventListener('drop', (e) => {
+    const file = e.dataTransfer.files[0];
+    if (file) handleFileSelected(file);
+  });
+  imageFileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) handleFileSelected(file);
+  });
+
+  function handleFileSelected(file) {
+    imageVerdictZone.innerHTML = '';
+
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      renderError(imageVerdictZone, 'Unsupported file type — please use PNG, JPG, or WEBP.');
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      renderError(imageVerdictZone, 'File too large — max size is 8MB.');
+      return;
+    }
+
+    selectedFile = file;
+    filenameEl.textContent = file.name;
+    previewImg.src = URL.createObjectURL(file);
+    dropzone.hidden = true;
+    previewWrap.hidden = false;
+  }
+
+  clearBtn.addEventListener('click', () => {
+    selectedFile = null;
+    imageFileInput.value = '';
+    previewImg.src = '';
+    dropzone.hidden = false;
+    previewWrap.hidden = true;
+    imageVerdictZone.innerHTML = '';
+  });
+
+  async function examineImage() {
+    if (!selectedFile) return;
+
+    examineImageBtn.disabled = true;
+    examineImageBtn.textContent = 'Examining…';
+    imageVerdictZone.innerHTML = '';
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    try {
+      const res = await fetch('/api/detect-image', { method: 'POST', body: formData });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `Request failed (${res.status})`);
+      }
+
+      const data = await res.json();
+      renderStamp(imageVerdictZone, data);
+
+      if (data.degraded_mode) {
+        const notice = document.createElement('div');
+        notice.className = 'notice-box';
+        notice.textContent = '⚠️ The vision model was unavailable for this request — this verdict is based on file metadata only, with lower confidence.';
+        imageVerdictZone.appendChild(notice);
+      }
+
+      if (data.forensic_signals && data.forensic_signals.length > 0) {
+        const details = document.createElement('details');
+        details.className = 'evidence';
+        const summary = document.createElement('summary');
+        summary.textContent = 'Why? See the underlying metadata evidence';
+        details.appendChild(summary);
+
+        const ul = document.createElement('ul');
+        data.forensic_signals.forEach(sig => {
+          const li = document.createElement('li');
+          li.innerHTML = `<span class="sig-${sig.strength}">[${sig.strength}]</span> ${sig.label} — ${sig.detail}`;
+          ul.appendChild(li);
+        });
+        details.appendChild(ul);
+        imageVerdictZone.appendChild(details);
+      }
+    } catch (err) {
+      renderError(imageVerdictZone, err.message || 'Something went wrong during examination.');
+    } finally {
+      examineImageBtn.disabled = false;
+      examineImageBtn.textContent = 'Examine';
+    }
+  }
+
+  examineImageBtn.addEventListener('click', examineImage);
 </script>
 
 </body>
